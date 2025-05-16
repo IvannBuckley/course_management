@@ -125,7 +125,7 @@ def student_courses(stu_id):
                                 host='127.0.0.1',
                                 database='course_management_system')
         cursor = cnx.cursor()
-        cursor.execute(f"SELECT * FROM courses c JOIN register r ON c.crs_id = r.crs_id WHERE st_id = {stu_id}")
+        cursor.execute(f"SELECT * FROM courses c JOIN Student_Course r ON c.crs_id = r.crs_id WHERE st_id = {stu_id}")
         course_list = []
         rows = cursor.fetchall()
         for row in rows:
@@ -194,10 +194,10 @@ def register():
         content = request.json
         stu_id = content['stu_id']
         crs_id = content['crs_id']
-        cursor.execute(f"SELECT COUNT(*) FROM register WHERE st_id = '{stu_id}'")
+        cursor.execute(f"SELECT COUNT(*) FROM Student_Course WHERE st_id = '{stu_id}'")
         row = cursor.fetchone()
         if row[0] < 6:
-            cursor.execute(f"INSERT INTO register (st_id, crs_id) VALUES ('{stu_id}', '{crs_id}')")
+            cursor.execute(f"INSERT INTO Student_Course (st_id, crs_id) VALUES ('{stu_id}', '{crs_id}')")
             cnx.commit()
             cursor.close()
             cnx.close()
@@ -215,7 +215,7 @@ def members(course):
                                 host='127.0.0.1',
                                 database='course_management_system')
         cursor = cnx.cursor()
-        cursor.execute(f"SELECT u.name  FROM register r JOIN students s ON r.st_id = s.st_id JOIN users u ON s.acc_id = u.acc_id WHERE r.crs_id = '{course}'")
+        cursor.execute(f"SELECT u.name  FROM Student_Course r JOIN students s ON r.st_id = s.st_id JOIN users u ON s.acc_id = u.acc_id WHERE r.crs_id = '{course}'")
         member_list = []
         rows = cursor.fetchall()
         for row in rows:
@@ -266,7 +266,7 @@ def ret_events_date(stu_id):
         cursor = cnx.cursor()
         content = request.json
         date = content['date']
-        cursor.execute(f"SELECT * FROM calendar WHERE event_date = '{date}' AND crs_id IN (SELECT crs_id FROM register WHERE st_id = '{stu_id}')")
+        cursor.execute(f"SELECT * FROM calendar WHERE event_date = '{date}' AND crs_id IN (SELECT crs_id FROM Student_Course WHERE st_id = '{stu_id}')")
         calen_list = []
         rows = cursor.fetchall()
         for row in rows:

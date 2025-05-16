@@ -104,12 +104,11 @@ def ret_course():
         course_list = []
         rows = cursor.fetchall()
         for row in rows:
-            course_id, course_name, course_description, lecturer_id = row
             course = {}
-            course['CourseID'] = course_id
-            course['CourseName'] = course_name
-            course['CourseDescription'] = course_description
-            course['LecturerID'] = lecturer_id
+            course['CourseID'] = row[0]
+            course['CourseName'] = row[1]
+            course['CourseDescription'] = row[2]
+            course['LecturerID'] = row[3]
             course_list.append(course)
         cursor.close()
         cnx.close()
@@ -129,13 +128,15 @@ def student_courses(stu_id):
         course_list = []
         rows = cursor.fetchall()
         for row in rows:
-            course_id, course_name, course_description, lecturer_id = row
             course = {}
-            course['CourseID'] = course_id
-            course['CourseName'] = course_name
-            course['CourseDescription'] = course_description
-            course['LecturerID'] = lecturer_id
+            course['CourseID'] = row[0]       
+            course['CourseName'] = row[1]      
+            course['CourseDescription'] = row[2]  
+            course['LecturerID'] = row[3]       
             course_list.append(course)
+        cursor.close()
+        cnx.close()
+        return make_response(course_list, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
 
@@ -150,13 +151,15 @@ def lecturer_courses(l_id):
         course_list = []
         rows = cursor.fetchall()
         for row in rows:
-            course_id, course_name, course_description, lecturer_id = row
             course = {}
-            course['CourseID'] = course_id
-            course['CourseName'] = course_name
-            course['CourseDescription'] = course_description
-            course['LecturerID'] = lecturer_id
+            course['CourseID'] = row[0]         
+            course['CourseName'] = row[1]        
+            course['CourseDescription'] = row[2]  
+            course['LecturerID'] = row[3]         
             course_list.append(course)
+        cursor.close()
+        cnx.close()
+        return make_response(course_list, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
 
@@ -219,9 +222,7 @@ def members(course):
         member_list = []
         rows = cursor.fetchall()
         for row in rows:
-            name = row
-            member = {}
-            member['StudentName'] = name
+            member = {'StudentName': row[0]} 
             member_list.append(member)
         cursor.close()
         cnx.close()
@@ -230,26 +231,26 @@ def members(course):
         return make_response({'error': str(e)}, 400)
     
 @app.route('/ret_events/<course_id>', methods=['GET'])
-def ret_events_course(course):
+def ret_events_course(course_id):
     try:
         cnx = mysql.connector.connect(user='uwi_user', password='uwi876',
                                 host='127.0.0.1',
                                 database='course_management_system')
         cursor = cnx.cursor()
-        cursor.execute(f"SELECT * FROM calendar WHERE crs_id = '{course}'")
+        cursor.execute(f"SELECT * FROM calendar WHERE crs_id = '{course_id}'")
         calen_list = []
         rows = cursor.fetchall()
         for row in rows:
-            cal_id, crs_id, title, description, event_date, start_time, end_time, created_by  = row
-            calen = {}
-            calen['CalendarId'] = cal_id
-            calen['CourseId'] = crs_id
-            calen['Title'] = title
-            calen['Description'] = description
-            calen['EventDate'] = event_date
-            calen['StartTime'] = start_time
-            calen['EndTime'] = end_time
-            calen['CreatedBy'] = created_by
+            calen = {
+                'CalendarId': row[0],
+                'CourseId': row[1],
+                'Title': row[2],
+                'Description': row[3],
+                'EventDate': str(row[4]),
+                'StartTime': str(row[5]),
+                'EndTime': str(row[6]),
+                'CreatedBy': row[7]
+            }
             calen_list.append(calen)
         cursor.close()
         cnx.close()
@@ -257,29 +258,26 @@ def ret_events_course(course):
     except Exception as e:
         return make_response({'error': str(e)}, 400)
     
-@app.route('/student/ret_events/<stu_id>', methods=['GET'])
-def ret_events_date(stu_id):
+@app.route('/student/ret_events/<stu_id>/<date>', methods=['GET'])
+def ret_events_date(stu_id, date):
     try:
         cnx = mysql.connector.connect(user='uwi_user', password='uwi876',
-                                host='127.0.0.1',
-                                database='course_management_system')
+                                      host='127.0.0.1',
+                                      database='course_management_system')
         cursor = cnx.cursor()
-        content = request.json
-        date = content['date']
         cursor.execute(f"SELECT * FROM calendar WHERE event_date = '{date}' AND crs_id IN (SELECT crs_id FROM Student_Course WHERE st_id = '{stu_id}')")
         calen_list = []
         rows = cursor.fetchall()
         for row in rows:
-            cal_id, crs_id, title, description, event_date, start_time, end_time, created_by  = row
             calen = {}
-            calen['CalendarId'] = cal_id
-            calen['CourseId'] = crs_id
-            calen['Title'] = title
-            calen['Description'] = description
-            calen['EventDate'] = event_date
-            calen['StartTime'] = start_time
-            calen['EndTime'] = end_time
-            calen['CreatedBy'] = created_by
+            calen['CalendarId'] = row[0]
+            calen['CourseId'] = row[1]
+            calen['Title'] = row[2]
+            calen['Description'] = row[3]
+            calen['EventDate'] = row[4].isoformat() if row[4] else None
+            calen['StartTime'] = str(row[5]) if row[5] else None
+            calen['EndTime'] = str(row[6]) if row[6] else None
+            calen['CreatedBy'] = row[7]
             calen_list.append(calen)
         cursor.close()
         cnx.close()
@@ -321,14 +319,17 @@ def ret_forums(course):
         forum_list = []
         rows = cursor.fetchall()
         for row in rows:
-            forum_id, crs_id, title, description, created_by  = row
-            forum = {}
-            forum['ForumId'] = forum_id
-            forum['CourseId'] = crs_id
-            forum['Title'] = title
-            forum['Description'] = description
-            forum['CreatedBy'] = created_by
+            forum = {
+                'ForumId': row[0],
+                'CourseId': row[1],
+                'Title': row[2],
+                'Description': row[3],
+                'CreatedBy': row[4]
+            }
             forum_list.append(forum)
+        cursor.close()
+        cnx.close()
+        return make_response(forum_list, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
     
@@ -362,14 +363,17 @@ def ret_threads(forum):
         thread_list = []
         rows = cursor.fetchall()
         for row in rows:
-            t_id, for_id, title, content, created_by  = row
-            thread = {}
-            thread['ThreadId'] = t_id
-            thread['ForumId'] = for_id
-            thread['Title'] = title
-            thread['Content'] = content
-            thread['CreatedBy'] = created_by
+            thread = {
+                'ThreadId': row[0],
+                'ForumId': row[1],
+                'Title': row[2],
+                'Content': row[3],
+                'CreatedBy': row[4]
+            }
             thread_list.append(thread)
+        cursor.close()
+        cnx.close()
+        return make_response(thread_list, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
     
@@ -458,16 +462,16 @@ def ret_contents(course):
         content_list = []
         rows = cursor.fetchall()
         for row in rows:
-            sec_num, sTitle, item_id, iTitle, item_type, content_url, file_path, created_by  = row
-            content = {}
-            content['SectionNumber'] = sec_num
-            content['SectionTitle'] = sTitle
-            content['ItemId'] = item_id
-            content['ItemTitle'] = iTitle
-            content['ItemType'] = item_type
-            content['ContentUrl'] = content_url
-            content['FilePath'] = file_path
-            content['CreatedBy'] = created_by
+            content = {
+                'SectionNumber': row[0],
+                'SectionTitle': row[1],
+                'ItemId': row[2],
+                'ItemTitle': row[3],
+                'ItemType': row[4],
+                'ContentUrl': row[5],
+                'FilePath': row[6],
+                'CreatedBy': row[7]
+            }
             content_list.append(content)
         cursor.close()
         cnx.close()
@@ -513,7 +517,7 @@ def grade_assignment(sub_id):
     except Exception as e:
         return make_response({'error': str(e)}, 400)
     
-@app.route('/average/st_id>', methods=['GET'])
+@app.route('/average/<st_id>', methods=['GET'])
 def get_student_average(st_id):
     try:
         cnx = mysql.connector.connect(user='uwi_user', password='uwi876',

@@ -38,7 +38,7 @@ def reg_user():
         print(e)
         return make_response({'error': 'An error has occured'}, 400)
 
-@app.route('/login', methods=['GET'])
+@app.route('/login', methods=['POST'])
 def login():
     try:
         cnx = mysql.connector.connect(user='uwi_user', password='uwi876',
@@ -184,7 +184,7 @@ def assign_course():
     except Exception as e:
         return make_response({'error': str(e)}, 400)
     
-@app.route('/student/register', methods=['PUT'])
+@app.route('/student/register', methods=['POST'])
 def register():
     try:
         cnx = mysql.connector.connect(user='uwi_user', password='uwi876',

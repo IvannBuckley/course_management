@@ -21,7 +21,8 @@ db = mysql.connector.connect(
 cursor = db.cursor()
 
 # Constants based on requirements
-NUM_STUDENTS = 100000
+NUM_STUDENTS = 1000 #using 1k student as test case
+
 NUM_COURSES = 200
 NUM_LECTURERS = 50  # 200 courses / 5 max per lecturer = minimum 40
 MIN_COURSES_PER_STUDENT = 3
@@ -346,44 +347,31 @@ def insert_events(events):
     db.commit()
 
 def generate_course_content(course_ids, lecturer_user_ids):
-    """Generate course sections and content items"""
-    sections = []
     items = []
-    
     for course_id in course_ids:
         num_sections = random.randint(*SECTIONS_PER_COURSE)
         for sec_num in range(1, num_sections + 1):
             title = f"Module {sec_num}: {fake.word().capitalize()}"
             created_by = random.choice(lecturer_user_ids)
-            sections.append((course_id, sec_num, title))
-    
-    # Insert sections and get their IDs
-    sql = "INSERT INTO Sections (crs_id, sec_num, title) VALUES (%s, %s, %s)"
-    cursor.executemany(sql, sections)
-    db.commit()
-    first_section_id = cursor.lastrowid - len(sections) + 1
-    
-    # Generate content items for each section
-    for i, section in enumerate(sections):
-        section_id = first_section_id + i
-        num_items = random.randint(*ITEMS_PER_SECTION)
-        for item_num in range(1, num_items + 1):
-            title = f"Content {item_num}: {fake.word().capitalize()}"
-            item_type = random.choice(['slides', 'file', 'link'])
-            
-            if item_type == 'slides':
-                content_url = f"https://example.com/slides/{course_id}/{section_id}/{item_num}.pdf"
-                file_path = None
-            elif item_type == 'file':
-                content_url = None
-                file_path = f"/uploads/course_{course_id}/section_{section_id}/item_{item_num}.pdf"
-            else:  # link
-                content_url = fake.uri()
-                file_path = None
-            
-            created_by = random.choice(lecturer_user_ids)
-            items.append((section_id, title, item_type, content_url, file_path, created_by))
-    
+            cursor.execute(
+                "INSERT INTO Sections (crs_id, sec_num, title) VALUES (%s, %s, %s)",
+                (course_id, sec_num, title)
+            )
+            section_id = cursor.lastrowid
+            num_items = random.randint(*ITEMS_PER_SECTION)
+            for item_num in range(1, num_items + 1):
+                item_title = f"Content {item_num}: {fake.word().capitalize()}"
+                item_type = random.choice(['slides', 'file', 'link'])
+                if item_type == 'slides':
+                    content_url = f"https://example.com/slides/{course_id}/{section_id}/{item_num}.pdf"
+                    file_path = None
+                elif item_type == 'file':
+                    content_url = None
+                    file_path = f"/uploads/course_{course_id}/section_{section_id}/item_{item_num}.pdf"
+                else:
+                    content_url = fake.uri()
+                    file_path = None
+                items.append((section_id, item_title, item_type, content_url, file_path, created_by))
     return items
 
 def insert_content_items(items):
@@ -394,7 +382,6 @@ def insert_content_items(items):
     db.commit()
 
 def ensure_default_admin():
-    # pick a fixed acc_id (must not collide with your auto-generated ranges)
     DEFAULT_ADMIN_ID = 1
 
     cursor.execute("SELECT 1 FROM Users WHERE acc_id=%s AND user_type='admin'", (DEFAULT_ADMIN_ID,))
@@ -414,7 +401,6 @@ def ensure_default_admin():
 def generate_sample_data():
     ensure_default_admin()
 
-    # At the start of generate_sample_data()
     cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
     tables = ["grades", "submissions", "assignments", "thread_Replies", "threads", "forums",
             "section_Items", "sections", "calendar", "student_Course", "courses", 
@@ -516,55 +502,56 @@ def generate_sample_data():
     cursor.execute(f"SELECT l_id FROM Lecturers WHERE acc_id IN ({format_str})", tuple(lecturer_user_ids))
     lecturer_ids = [row[0] for row in cursor.fetchall()]
 
-
     # 5. Generate Courses
     print(f"Creating {NUM_COURSES} courses...")
     courses = generate_courses(NUM_COURSES, lecturer_ids)
     fake.unique.clear()
     insert_courses(courses)
-    course_ids = list(range(cursor.lastrowid - len(courses) + 1, cursor.lastrowid + 1))
 
-    # 6. Enroll students in courses (using student_st_ids)
+    cursor.execute("SELECT crs_id FROM Courses")
+    course_ids = [row[0] for row in cursor.fetchall()]
+
+    # # 6. Enroll students in courses
     print("Enrolling students in courses...")
-    enrollments = enroll_students(course_ids, student_st_ids)  # Changed to student_st_ids
+    enrollments = enroll_students(course_ids, student_st_ids)
     insert_enrollments(enrollments)
 
     # 7. Generate Forums
     print("Creating forums...")
     forums = generate_forums(course_ids, lecturer_user_ids)
     insert_forums(forums)
-    
+
     # 8. Generate Threads
     print("Creating discussion threads...")
     threads = generate_threads(forums, student_user_ids, lecturer_user_ids)
     insert_threads(threads)
-    
+
     # 9. Generate Replies
     print("Creating thread replies...")
     replies = generate_replies(threads, student_user_ids, lecturer_user_ids)
     insert_replies(replies)
-    
+
     # 10. Generate Assignments
     print("Creating assignments...")
     assignments = generate_assignments(course_ids, lecturer_user_ids)
     insert_assignments(assignments)
-    
-    # 11. Generate Submissions and Grades (using student_st_ids)
+
+    # 11. Generate Submissions and Grades
     print("Creating submissions and grades...")
-    submissions, grades = generate_submissions(assignments, student_st_ids)  # Changed to student_st_ids
+    submissions, grades = generate_submissions(assignments, student_st_ids)
     insert_submissions(submissions)
     insert_grades(grades)
-    
+
     # 12. Generate Calendar Events
     print("Creating calendar events...")
     events = generate_events(course_ids, lecturer_user_ids)
     insert_events(events)
-    
+
     # 13. Generate Course Content
     print("Creating course content...")
     content_items = generate_course_content(course_ids, lecturer_user_ids)
     insert_content_items(content_items)
-    
+
     # Verification
     cursor.execute("SELECT COUNT(*) FROM Students")
     student_count = cursor.fetchone()[0]

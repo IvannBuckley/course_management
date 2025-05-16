@@ -646,3 +646,6 @@ def top_10_students_by_average():
         return make_response(report, 200)
     except Exception as e:
         return make_response({'error': str(e)}, 400)
+
+if __name__ == '__main__':
+    app.run(port=6000)

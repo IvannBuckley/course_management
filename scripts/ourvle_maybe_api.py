@@ -257,7 +257,7 @@ def ret_events_course(course):
     except Exception as e:
         return make_response({'error': str(e)}, 400)
     
-@app.route('student/ret_events/<stu_id>', methods=['GET'])
+@app.route('/student/ret_events/<stu_id>', methods=['GET'])
 def ret_events_date(stu_id):
     try:
         cnx = mysql.connector.connect(user='uwi_user', password='uwi876',

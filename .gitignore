@@ -1,0 +1,10 @@
+*.zip
+scripts/\# keep_awake.py
+scripts/Course Management System.postman_collection.json
+scripts/course_management_system.sql
+scripts/ourvle_maybe_api.py
+scripts/seed_data (2).sql
+scripts/seed_data.sql
+scripts/sql-gen.py
+scripts/test_queries.sql
+scripts/\#4 seed_data.sql
